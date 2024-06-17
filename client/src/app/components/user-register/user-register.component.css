@@ -1,0 +1,17 @@
+.container-fluid{
+    background-color: lightblue;
+}
+.loginBody{
+    background: url('../../../assets/registerBackground.jpg');
+    background-size: cover;
+    background-repeat: repeat-x;
+    background-attachment:initial;
+    box-shadow: 3px 4px 15px 4px whitesmoke
+}
+.form-label{
+    /* background-color:white; */
+    padding: 5px 10px;
+    border-radius: 20px;
+    box-shadow: 2px 2px 5px whitesmoke;
+    
+}

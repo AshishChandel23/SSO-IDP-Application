@@ -1,0 +1,337 @@
+
+Initiate URL :-
+http://localhost:3001/api/v1/auth/authorize?response_type=code&client_id=f0aa2ed1ade2bbc68574bb62&redirect_uri=http://localhost:3001/callback&state=someState
+
+1. we are not authenticated 
+    then it will store information of redirection temporary session adn redirect login page
+2. fill th credentials and go to click login 
+    we get response of redirection url which will be store in temporary session 
+    this url send into response.
+3. it will redirect again in authorize end point with authenticated and 
+    get authorize form and redirect to there client site with authorization code.
+
+The OAuth 2.0 Authorization Code Flow, which is the standard way of implementing Single Sign-On (SSO)
+with an Identity Provider (IdP) in Node.js.
+
+
+==> OAuth 2.0 Authorization Code Flow Here starts the steps --->>>
+
+The Authorization Code Flow involves multiple steps and interactions between the client application, 
+the user, and the Identity Provider (IdP). Here is a detailed breakdown of the flow:
+
+Step 1:-
+User Requests Access
+
+The user tries to access a resource or application (Client Application) that requires authentication.
+
+Step 2:-
+Client Redirects to Authorization Endpoint
+
+The client application redirects the user to the IdP's authorization endpoint with the following parameters:
+response_type=code: Indicates that the client expects an authorization code.
+client_id: The client identifier issued to the client during registration.
+redirect_uri: The URL to which the IdP will send the authorization code.
+scope: The scope of access requested (e.g., openid profile email).
+state: An optional parameter to maintain state between the request and the callback.
+Example URL:
+
+bash
+Copy code
+http://localhost:3000/authorize?response_type=code&client_id=client&redirect_uri=http://localhost:3001/callback&scope=openid profile email
+
+Step 3:-
+User Authenticates and Grants Consent
+
+The IdP displays a login page where the user authenticates.
+After successful authentication, the IdP asks the user to grant or deny consent to the requested access.
+
+Step 4:-
+IdP Issues Authorization Code
+
+If the user grants consent, the IdP generates an authorization code.
+The IdP redirects the user back to the client application using the redirect_uri 
+with the authorization code and the state parameter.
+Example URL:
+
+bash
+Copy code
+http://localhost:3001/callback?code=AUTH_CODE&state=STATE
+
+Step 5:-
+Client Exchanges Authorization Code for Access Token
+
+The client application receives the authorization code and sends a POST request to 
+the IdP's token endpoint to exchange the code for an access token.
+The request includes the following parameters:
+grant_type=authorization_code: Indicates the type of grant being used.
+code: The authorization code received from the IdP.
+redirect_uri: The same redirect URI used in the authorization request.
+client_id: The client identifier.
+client_secret: The client secret.
+Example request:
+
+sh
+Copy code
+POST /token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&code=AUTH_CODE&redirect_uri=http://localhost:3001/callback&client_id=client&client_secret=secret
+
+Step 6:-
+IdP Issues Access Token
+
+The IdP validates the authorization code and client credentials.
+Upon successful validation, the IdP issues an access token (and optionally a refresh token) and 
+returns it to the client application.
+Example response:
+
+json
+Copy code
+{
+  "access_token": "ACCESS_TOKEN",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+
+Step 7:-
+Client Accesses Protected Resource
+
+The client application uses the access token to access protected resources on behalf of the user by including the token in the Authorization header of the request.
+Example request:
+
+sh
+Copy code
+GET /me
+Authorization: Bearer ACCESS_TOKEN
+
+Step 8:-
+Resource Server Validates Token and Responds
+
+The resource server validates the access token.
+If the token is valid, the resource server responds with the requested resource or user information.
+
+IDP Server Example:-
+const express = require('express');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const BearerStrategy = require('passport-http-bearer').Strategy;
+const crypto = require('crypto');
+
+const app = express();
+const port = 3000;
+
+// In-memory storage (replace with a database in production)
+const users = [];
+const clients = [
+  { clientId: 'client', clientSecret: 'secret', redirectUris: ['http://localhost:3001/callback'] },
+];
+const authorizationCodes = new Map();
+const accessTokens = new Map();
+
+// Configure Passport
+passport.use(
+  new LocalStrategy((username, password, done) => {
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      return done(null, user);
+    } else {
+      return done(null, false, { message: 'Incorrect credentials.' });
+    }
+  })
+);
+
+passport.use(
+  new BearerStrategy((token, done) => {
+    const user = accessTokens.get(token);
+    if (user) {
+      return done(null, user);
+    } else {
+      return done(null, false);
+    }
+  })
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+  const user = users.find(u => u.id === id);
+  done(null, user);
+});
+
+// Middleware setup
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(session({ secret: 'secret', resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// User Registration
+app.get('/register', (req, res) => {
+  res.send(`
+    <form method="post" action="/register">
+      <div>
+        <label>Username:</label>
+        <input type="text" name="username"/>
+      </div>
+      <div>
+        <label>Password:</label>
+        <input type="password" name="password"/>
+      </div>
+      <div>
+        <input type="submit" value="Register"/>
+      </div>
+    </form>
+  `);
+});
+
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  if (users.find(u => u.username === username)) {
+    return res.status(400).send('User already exists');
+  }
+  const user = { id: users.length + 1, username, password };
+  users.push(user);
+  res.redirect('/login');
+});
+
+// Login route
+app.get('/login', (req, res) => {
+  res.send(`
+    <form method="post" action="/login">
+      <div>
+        <label>Username:</label>
+        <input type="text" name="username"/>
+      </div>
+      <div>
+        <label>Password:</label>
+        <input type="password" name="password"/>
+      </div>
+      <div>
+        <input type="submit" value="Login"/>
+      </div>
+    </form>
+  `);
+});
+
+app.post('/login', passport.authenticate('local', {
+  successRedirect: '/authorize',
+  failureRedirect: '/login',
+}));
+
+// Authorization route
+app.get('/authorize', (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login');
+  }
+  const client = clients.find(c => c.clientId === req.query.client_id);
+  if (!client) {
+    return res.status(400).send('Invalid client');
+  }
+  res.send(`
+    <form method="post" action="/authorize">
+      <p>Do you authorize ${client.clientId} to access your profile?</p>
+      <input type="hidden" name="response_type" value="${req.query.response_type}"/>
+      <input type="hidden" name="client_id" value="${req.query.client_id}"/>
+      <input type="hidden" name="redirect_uri" value="${req.query.redirect_uri}"/>
+      <input type="hidden" name="state" value="${req.query.state}"/>
+      <button type="submit">Authorize</button>
+    </form>
+  `);
+});
+
+app.post('/authorize', (req, res) => {
+  const authorizationCode = crypto.randomBytes(16).toString('hex');
+  const redirectUri = new URL(req.body.redirect_uri);
+  authorizationCodes.set(authorizationCode, { clientId: req.body.client_id, userId: req.user.id });
+  redirectUri.searchParams.set('code', authorizationCode);
+  redirectUri.searchParams.set('state', req.body.state);
+  res.redirect(redirectUri.toString());
+});
+
+// Token route
+app.post('/token', (req, res) => {
+  const { code, client_id, client_secret, redirect_uri } = req.body;
+  const authCode = authorizationCodes.get(code);
+
+  if (!authCode || authCode.clientId !== client_id) {
+    return res.status(400).send('Invalid authorization code');
+  }
+
+  const client = clients.find(c => c.clientId === client_id && c.clientSecret === client_secret);
+  if (!client) {
+    return res.status(400).send('Invalid client credentials');
+  }
+
+  authorizationCodes.delete(code);
+
+  const accessToken = crypto.randomBytes(32).toString('hex');
+  accessTokens.set(accessToken, { id: authCode.userId });
+
+  res.json({
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: 3600,
+  });
+});
+
+// Protected resource route
+app.get('/me', passport.authenticate('bearer', { session: false }), (req, res) => {
+  res.json({ id: req.user.id, username: req.user.username });
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
+
+
+Client Application Example:-
+const express = require('express');
+const axios = require('axios');
+const querystring = require('querystring');
+
+const app = express();
+const port = 3001;
+const clientID = 'client';
+const clientSecret = 'secret';
+const redirectURI = 'http://localhost:3001/callback';
+const authServer = 'http://localhost:3000';
+
+app.get('/login', (req, res) => {
+  const authUrl = `${authServer}/authorize?response_type=code&client_id=${clientID}&redirect_uri=${redirectURI}&scope=openid profile email&state=xyz`;
+  res.redirect(authUrl);
+});
+
+app.get('/callback', async (req, res) => {
+  const { code, state } = req.query;
+  try {
+    const tokenResponse = await axios.post(`${authServer}/token`, querystring.stringify({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectURI,
+      client_id: clientID,
+      client_secret: clientSecret,
+    }), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    const { access_token } = tokenResponse.data;
+
+    const userInfoResponse = await axios.get(`${authServer}/me`, {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+
+    res.json(userInfoResponse.data);
+  } catch (error) {
+    res.status(500).send('Authentication failed');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Client app listening at http://localhost:${port}`);
+});

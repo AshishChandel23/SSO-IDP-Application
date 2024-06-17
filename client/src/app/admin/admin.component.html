@@ -1,0 +1,23 @@
+<div class="">
+    <div class="dashboard">
+        <div class="px-3 bg-dark text-center" style="min-height: 100vh;">
+            <div class="">
+                <h2 class="text-white mt-4">DashBoard</h2>
+                <div class="px-3">
+                    <ul class="menuBar">
+                        <li class="menuItem" [routerLink]="dashboard">Home</li>
+                        <li class="menuItem" [routerLink]="routeUser">Users</li>
+                        <li class="menuItem" [routerLink]="routeService">Applications</li>
+                        <li class="menuItem" [routerLink]="routeStaff">Staffs</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mb-2">
+                <button class="logout" (click)="logout()">Logout</button>
+            </div>
+        </div>
+        <div class="px-4 outlet">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</div>

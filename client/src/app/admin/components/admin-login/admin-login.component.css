@@ -1,0 +1,10 @@
+.loginBody{
+    background: url('../../../../assets/loginBackground.jpg');
+    background-size: cover;
+    background-repeat: repeat-x;
+    background-attachment:initial;
+}
+.middle{
+    /* opacity: 0.8; 
+    background-color: black; */
+}

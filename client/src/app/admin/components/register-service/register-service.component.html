@@ -1,0 +1,114 @@
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="m-0">Manage Client Application</h4>
+    <div class="d-flex justify-content-end gap-3">
+      <button type="button" class="btn btn-dark btn-sm" (click)="showingHandler(true, 'showForm')">Register</button>
+      <button type="button" class="btn btn-dark btn-sm" (click)="showingHandler(false, 'showList')">Show List</button>
+    </div>
+  </div>
+  <div class="row mt-2 w-90 m-auto" *ngIf="showForm">
+    <form class="form-control-sm p-4 col-lg-6 m-auto bg-white shadow rounded rounded-3">
+      <div class="mb-3">
+        <label for="exampleInputEmail1" class="form-label">Application Name <span
+            class="text-danger fw-bold">*</span></label>
+        <input type="email" class="form-control" id="application" name="applicationName" [(ngModel)]="applicationName"
+          aria-describedby="emailHelp">
+      </div>
+      <div class="mb-3">
+        <label for="exampleInputPassword1" class="form-label">Domain <span class="text-danger fw-bold">*</span></label>
+        <input type="text" class="form-control" id="domain" name="url" [(ngModel)]="url">
+      </div>
+      <div class="mb-3">
+        <label for="exampleInputPassword1" class="form-label">Callback Url <span
+            class="text-danger fw-bold">*</span></label>
+        <input type="text" class="form-control" id="callback" name="callbackUrl" [(ngModel)]="callbackUrl">
+      </div>
+      <button type="submit" class="btn btn-dark" (click)="registerApplication()">Register Application</button>
+    </form>
+  </div>
+  <div class="row mt-2" *ngIf="!showForm">
+    <table class="table_wrapper table-hover table-striped table-responsive">
+      <thead>
+        <tr>
+          <th scope="col">Id</th>
+          <th scope="col">Application</th>
+          <th scope="col">Domain</th>
+          <th scope="col">Callback Url</th>
+          <th scope="col">CreatedAt</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let app of appData;">
+          <td>{{app._id}}</td>
+          <td>{{app.applicationName}}</td>
+          <td>{{app.url}}</td>
+          <td>{{app.callbackUrl}}</td>
+          <td>{{app.createdAt | date:'medium' }}</td>
+          <td>
+            <i type="button" class="text-dark fa-solid fa-eye" data-bs-toggle="modal" [attr.data-bs-target]="'#modal' + app._id" (click)="getApplicationById(app._id)"></i>
+            <i type="button" class="mx-2 text-danger fa-solid fa-trash"  data-bs-toggle="modal" [attr.data-bs-target]="'#staticBackdrop' + app._id"></i>
+            <!-- Modal for showing register application data -->
+            <div class="modal fade" [attr.id]="'modal' + app._id" tabindex="-1" aria-labelledby="exampleModalLabel"
+              aria-hidden="true">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title text-dark fw-bold" id="exampleModalLabel">Client Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="modalData">
+                      <span>Application Id : {{ applicationData._id }}</span>
+                    </div>
+                    <div class="modalData mt-2">
+                      <span>Application Name : {{applicationData.applicationName}}</span>
+                    </div>
+                    <div class="modalData mt-2">
+                      <span>Application Url : {{applicationData.url}}</span>
+                    </div>
+                    <div class="modalData mt-2">
+                      <span>Application callbackUrl : {{applicationData.callbackUrl}}</span>
+                    </div>
+                    <div class="modalData mt-2 d-flex flex-direction-column gap-2">
+                      <div class="text-start">
+                        <span>Client Id : {{applicationData.clientId}}</span><br>
+                        <span>Client Secret : {{applicationData.clientSecret}}</span>
+                      </div>
+                      <div class="m-auto">
+                        <button type="button" class="btn btn-dark"
+                          (click)="regenrateCredentials(applicationData._id)">Regenrate</button>
+                      </div>
+                    </div>
+                    <div class="modalData mt-2">
+                      <span>Application Date : {{applicationData.createdAt | date:'medium' }}</span>
+                    </div>
+                  </div>
+                  <!-- <div class="modal-footer">
+                  <button type="button" class="btn btn-dark">Save</button>
+                </div> -->
+                </div>
+              </div>
+            </div>
+            <!-- Modal for confirmation of delete application data -->
+            <div class="modal fade" [attr.id]="'staticBackdrop' + app._id" data-bs-backdrop="static"
+              data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-body">
+                    Are you sure you want to delete this Client Application Details ?
+                  </div>
+                  <div class="modal-body text-center">
+                    <button type="button" class="btn btn-dark" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger mx-4" data-bs-dismiss="modal"
+                      (click)="deleteApplication(app._id)">Delete</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
