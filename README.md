@@ -1,1 +1,1 @@
-IDP
+SSO IDP Application
